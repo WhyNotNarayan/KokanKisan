@@ -1,0 +1,119 @@
+Create a UML Activity Diagram for KokanKisan with ONE start and ONE end point.
+
+TITLE: "KokanKisan - Activity Diagram"
+
+═══════════════════════════════════════════════
+STYLE (Follow exactly like the example image):
+═══════════════════════════════════════════════
+
+- ONE single continuous flow from top to bottom
+- ONE Initial State (●) at top-left in User swimlane
+- ONE Final State (◉) at bottom in User swimlane
+- Activities flow BETWEEN swimlanes (up and down)
+- Decision diamonds with [Yes/No] guard conditions
+- Dotted arrows for return/loop flows
+- Clean single path like the example
+
+═══════════════════════════════════════════════
+SWIMLANES (3 columns):
+═══════════════════════════════════════════════
+
+1. User (Buyer/Farmer)
+2. System (Backend + Database)
+3. External (Firebase Auth, Razorpay, MSG91)
+
+═══════════════════════════════════════════════
+SINGLE CONTINUOUS FLOW:
+═══════════════════════════════════════════════
+
+START (●) in User swimlane
+
+USER:
+→ Login with Phone
+
+SYSTEM:
+→ Send OTP to Firebase Auth
+→ Verify OTP
+
+EXTERNAL:
+→ Send OTP via SMS
+
+SYSTEM:
+→ Decision: [OTP Valid?]
+→ [No] → Show Error → Back to Login (dotted arrow)
+→ [Yes] → Display Home Page
+
+USER:
+→ Browse Products
+→ Select Product
+
+SYSTEM:
+→ Fetch Product Details
+→ Display Product
+
+USER:
+→ Add to Cart
+→ Proceed to Checkout
+
+SYSTEM:
+→ Validate Order
+→ Check Stock
+
+SYSTEM:
+→ Decision: [In Stock?]
+→ [No] → Show Out of Stock → Back to Cart (dotted arrow)
+→ [Yes] → Create Order
+
+EXTERNAL (Razorpay):
+→ Process Payment
+
+SYSTEM:
+→ Decision: [Payment Success?]
+→ [No] → Show Payment Error → Back to Payment (dotted arrow)
+→ [Yes] → Confirm Payment
+
+SYSTEM:
+→ Update Order Status
+→ Notify Farmer via MSG91
+
+EXTERNAL:
+→ Send SMS to Farmer
+
+USER (Farmer):
+→ Receive Order Notification
+→ Update Order Status
+
+SYSTEM:
+→ Send Status Update to Buyer via MSG91
+
+EXTERNAL:
+→ Send SMS to Buyer
+
+USER (Buyer):
+→ Receive Update
+→ Get Confirmation Message
+
+END (◉) in User swimlane
+
+═══════════════════════════════════════════════
+NOTATIONS:
+═══════════════════════════════════════════════
+
+● = Initial State (ONE only)
+◉ = Final State (ONE only)
+○ = Activity State (rounded oval)
+◇ = Decision Node (diamond)
+→ = Control Flow (solid arrow)
+[..] = Guard Condition
+...→ = Return/Loop Flow (dotted arrow)
+
+═══════════════════════════════════════════════
+IMPORTANT:
+═══════════════════════════════════════════════
+
+✓ ONE start point only
+✓ ONE end point only  
+✓ Single continuous flow
+✓ No separate workflows
+✓ Activities move between swimlanes
+✓ Clean layout like the example
