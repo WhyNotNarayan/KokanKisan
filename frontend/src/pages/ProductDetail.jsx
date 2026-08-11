@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Star, ShoppingCart, Flag, ChevronLeft } from 'lucide-react';
+import { MapPin, Star, ShoppingCart, Flag, ChevronLeft, ChevronRight } from 'lucide-react';
 import TrustBadge from '../components/TrustBadge';
 import useCartStore from '../store/useCartStore';
 import useAuthStore from '../store/useAuthStore';
@@ -81,6 +81,8 @@ export default function ProductDetail() {
     );
   }
 
+  const [selectedImage, setSelectedImage] = useState(0);
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <Link to="/products" className="inline-flex items-center gap-1 text-gray-500 hover:text-forest-500 mb-6">
@@ -88,11 +90,28 @@ export default function ProductDetail() {
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
-          {product.images && product.images[0] ? (
-            <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-300 text-6xl">🌾</div>
+        <div className="space-y-4">
+          <div className="aspect-square bg-gray-100 rounded-xl overflow-hidden">
+            {product.images && product.images[selectedImage] ? (
+              <img src={product.images[selectedImage]} alt={product.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-300 text-6xl">🌾</div>
+            )}
+          </div>
+          {product.images && product.images.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {product.images.map((img, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImage(index)}
+                  className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 ${
+                    selectedImage === index ? 'border-forest-500' : 'border-gray-200'
+                  }`}
+                >
+                  <img src={img} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
