@@ -30,6 +30,14 @@ import UploadVideo from './pages/farmer/UploadVideo';
 import AdminDashboard from './pages/admin/Dashboard';
 import FarmerApproval from './pages/admin/FarmerApproval';
 import FlaggedListings from './pages/admin/FlaggedListings';
+import Blogs from './pages/admin/Blogs';
+import BlogEditor from './pages/admin/BlogEditor';
+import GreenReports from './pages/admin/GreenReports';
+import Calendar from './pages/admin/Calendar';
+
+import CultureHub from './pages/CultureHub';
+import FestivalDetail from './pages/FestivalDetail';
+import GreenKokan from './pages/GreenKokan';
 
 export default function App() {
   const user = useAuthStore((s) => s.user);
@@ -40,12 +48,15 @@ export default function App() {
       <Navbar />
       <main className="flex-1">
         <Routes>
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={!user ? <Landing /> : <Navigate to={getDashboard(user.role)} />} />
           <Route path="/login" element={!user ? <Login /> : <Navigate to={getDashboard(user.role)} />} />
           <Route path="/register" element={!user ? <Register /> : <Navigate to={getDashboard(user.role)} />} />
           <Route path="/products" element={<BrowseProducts />} />
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/farmer/:id" element={<FarmerProfile />} />
+          <Route path="/culture" element={<CultureHub />} />
+          <Route path="/culture/:id" element={<FestivalDetail />} />
+          <Route path="/green" element={<GreenKokan />} />
 
           <Route path="/buyer" element={<ProtectedRoute role="buyer"><BuyerDashboard /></ProtectedRoute>} />
           <Route path="/buyer/cart" element={<ProtectedRoute role="buyer"><Cart /></ProtectedRoute>} />
@@ -64,6 +75,11 @@ export default function App() {
           <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/admin/farmers" element={<ProtectedRoute role="admin"><FarmerApproval /></ProtectedRoute>} />
           <Route path="/admin/flags" element={<ProtectedRoute role="admin"><FlaggedListings /></ProtectedRoute>} />
+          <Route path="/admin/blogs" element={<ProtectedRoute role="admin"><Blogs /></ProtectedRoute>} />
+          <Route path="/admin/blogs/new" element={<ProtectedRoute role="admin"><BlogEditor /></ProtectedRoute>} />
+          <Route path="/admin/blogs/:id" element={<ProtectedRoute role="admin"><BlogEditor /></ProtectedRoute>} />
+          <Route path="/admin/green-reports" element={<ProtectedRoute role="admin"><GreenReports /></ProtectedRoute>} />
+          <Route path="/admin/calendar" element={<ProtectedRoute role="admin"><Calendar /></ProtectedRoute>} />
         </Routes>
       </main>
       <Footer />
