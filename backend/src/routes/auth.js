@@ -127,4 +127,36 @@ router.post('/verify-otp', async (req, res) => {
   }
 });
 
+const ADMIN_CREDENTIALS = {
+  email: 'admin@gmail.com',
+  password: '123456',
+};
+
+router.post('/admin-login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    if (email !== ADMIN_CREDENTIALS.email || password !== ADMIN_CREDENTIALS.password) {
+      return res.status(401).json({ error: 'Invalid admin credentials.' });
+    }
+
+    const token = jwt.sign({ uid: 'admin', role: 'admin' }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    });
+
+    res.json({
+      message: 'Admin login successful',
+      token,
+      user: { uid: 'admin', name: 'Platform Admin', email: ADMIN_CREDENTIALS.email, role: 'admin' },
+    });
+  } catch (err) {
+    console.error('Admin login error:', err);
+    res.status(500).json({ error: 'Admin login failed.' });
+  }
+});
+
 module.exports = router;
