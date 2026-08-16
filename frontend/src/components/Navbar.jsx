@@ -27,6 +27,8 @@ export default function Navbar() {
 
           <div className="hidden md:flex items-center gap-6">
             <Link to="/products" className="text-gray-600 hover:text-forest-500 font-medium">Products</Link>
+            <Link to="/culture" className="text-gray-600 hover:text-forest-500 font-medium">Culture Hub</Link>
+            <Link to="/green" className="text-gray-600 hover:text-forest-500 font-medium">Green Kokan</Link>
             {user?.role === 'buyer' && (
               <Link to="/buyer/cart" className="relative text-gray-600 hover:text-forest-500">
                 <ShoppingCart className="w-5 h-5" />
@@ -60,6 +62,8 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden border-t bg-white px-4 py-4 space-y-3">
           <Link to="/products" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-forest-500">Products</Link>
+          <Link to="/culture" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-forest-500">Culture Hub</Link>
+          <Link to="/green" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-forest-500">Green Kokan</Link>
           {user?.role === 'buyer' && (
             <Link to="/buyer/cart" onClick={() => setMenuOpen(false)} className="block text-gray-600 hover:text-forest-500">
               Cart ({cartCount})
