@@ -22,6 +22,7 @@ const productSchema = new mongoose.Schema({
   quantity: { type: Number, required: true, min: 0 },
   unit: { type: String, default: 'kg' },
   description: { type: String, default: '' },
+  advantages: { type: String, default: '' },
   images: [{ type: String }],
   village: { type: String, required: true },
   taluka: { type: String, required: true },
