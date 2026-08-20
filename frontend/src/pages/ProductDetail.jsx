@@ -133,6 +133,15 @@ export default function ProductDetail() {
             <p className="text-gray-600">{product.description}</p>
           )}
 
+          {product.advantages && (
+            <div className="bg-forest-50 rounded-lg p-4">
+              <h3 className="font-semibold text-forest-700 mb-2 flex items-center gap-2">
+                <span>✨</span> Product Advantages
+              </h3>
+              <p className="text-sm text-gray-600 whitespace-pre-line">{product.advantages}</p>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-500">Stock:</span>
             {product.inStock ? (
