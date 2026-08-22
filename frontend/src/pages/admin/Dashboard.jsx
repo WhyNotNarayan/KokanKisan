@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Users, ShoppingBag, DollarSign, AlertTriangle, Package, UserCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, ShoppingBag, DollarSign, AlertTriangle, Package, UserCheck, BookOpen, Leaf, Calendar } from 'lucide-react';
 import { api } from '../../utils/api';
 
 export default function AdminDashboard() {
@@ -69,12 +70,21 @@ export default function AdminDashboard() {
         <div className="card">
           <h2 className="font-semibold mb-4">Quick Actions</h2>
           <div className="space-y-2">
-            <a href="/admin/farmers" className="block p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
+            <Link to="/admin/farmers" className="block p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
               Review Pending Farmers ({stats.pendingApprovals})
-            </a>
-            <a href="/admin/flags" className="block p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
+            </Link>
+            <Link to="/admin/flags" className="block p-3 rounded-lg hover:bg-gray-50 border border-gray-100">
               Review Flagged Products ({stats.totalFlags})
-            </a>
+            </Link>
+            <Link to="/admin/blogs" className="block p-3 rounded-lg hover:bg-gray-50 border border-gray-100 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-forest-500" /> Culture Hub — Festival Blogs
+            </Link>
+            <Link to="/admin/green-reports" className="block p-3 rounded-lg hover:bg-gray-50 border border-gray-100 flex items-center gap-2">
+              <Leaf className="w-4 h-4 text-green-600" /> Green Kokan — Reports
+            </Link>
+            <Link to="/admin/calendar" className="block p-3 rounded-lg hover:bg-gray-50 border border-gray-100 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-purple-500" /> Festival Calendar
+            </Link>
           </div>
         </div>
 
