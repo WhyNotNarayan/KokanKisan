@@ -7,11 +7,36 @@ import toast from 'react-hot-toast';
 
 const CATEGORIES = ['Rice & Grains', 'Vegetables', 'Fruits', 'Spices', 'Coconut Products', 'Fish & Seafood', 'Pickles & Homemade', 'Other'];
 
+const compressImage = (file, maxWidth = 800, quality = 0.7) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function AddProduct() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    name: '', category: '', price: '', quantity: '', unit: 'kg', description: '', village: user.village || '', taluka: user.taluka || '',
+    name: '', category: '', price: '', quantity: '', unit: 'kg', description: '', advantages: '', village: user.village || '', taluka: user.taluka || '',
   });
   const [images, setImages] = useState([]);
   const [imageUrls, setImageUrls] = useState(['']);
@@ -40,19 +65,18 @@ export default function AddProduct() {
     }
   };
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
-    files.forEach(file => {
+    for (const file of files) {
       if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setImages(prev => [...prev, event.target.result]);
-        };
-        reader.readAsDataURL(file);
+        toast.loading('Compressing image...', { id: 'compress' });
+        const compressed = await compressImage(file);
+        setImages(prev => [...prev, compressed]);
+        toast.success('Image added', { id: 'compress' });
       } else {
         toast.error('Please upload only image files');
       }
-    });
+    }
   };
 
   const removeImage = (index) => {
@@ -169,6 +193,12 @@ export default function AddProduct() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
           <textarea name="description" value={form.description} onChange={handleChange} placeholder="Describe your product — farming method, freshness, special qualities..." className="input-field h-24 resize-none" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Product Advantages (for Culture Hub)</label>
+          <p className="text-xs text-gray-500 mb-2">Highlight the unique benefits of your product - these will be featured in the Culture Hub section</p>
+          <textarea name="advantages" value={form.advantages} onChange={handleChange} placeholder="e.g., 100% organic, no chemicals used, rich in nutrients, traditional farming method, supports local community, fresh harvest within 24 hours..." className="input-field h-24 resize-none" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
