@@ -62,6 +62,23 @@ router.get('/farmers/pending', async (req, res) => {
   }
 });
 
+router.get('/farmers/:id', async (req, res) => {
+  try {
+    const profile = await FarmerProfile.findOne({ uid: req.params.id });
+    if (!profile) {
+      return res.status(404).json({ error: 'Farmer profile not found.' });
+    }
+    const user = await User.findOne({ uid: req.params.id }).select('uid name phone village taluka city createdAt');
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    res.json({ ...user.toObject(), profile });
+  } catch (err) {
+    console.error('Get farmer error:', err);
+    res.status(500).json({ error: 'Failed to fetch farmer.' });
+  }
+});
+
 router.put('/farmers/:id/approve', async (req, res) => {
   try {
     const profile = await FarmerProfile.findOneAndUpdate(
