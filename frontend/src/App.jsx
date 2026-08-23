@@ -1,10 +1,11 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import useAuthStore from './store/useAuthStore';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminLayout from './components/AdminLayout';
 
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -38,14 +39,18 @@ import Calendar from './pages/admin/Calendar';
 import CultureHub from './pages/CultureHub';
 import FestivalDetail from './pages/FestivalDetail';
 import GreenKokan from './pages/GreenKokan';
+import FestivalNotification from './components/FestivalNotification';
 
 export default function App() {
   const user = useAuthStore((s) => s.user);
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith('/admin');
 
   return (
     <div className="min-h-screen flex flex-col bg-cream-50">
       <Toaster position="top-right" />
-      <Navbar />
+      {user?.role === 'buyer' && <FestivalNotification />}
+      {!isAdmin && <Navbar />}
       <main className="flex-1">
         <Routes>
           <Route path="/" element={!user ? <Landing /> : <Navigate to={getDashboard(user.role)} />} />
@@ -72,17 +77,19 @@ export default function App() {
           <Route path="/farmer/trust-score" element={<ProtectedRoute role="farmer"><TrustScoreDetail /></ProtectedRoute>} />
           <Route path="/farmer/upload-video" element={<ProtectedRoute role="farmer"><UploadVideo /></ProtectedRoute>} />
 
-          <Route path="/admin" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/admin/farmers" element={<ProtectedRoute role="admin"><FarmerApproval /></ProtectedRoute>} />
-          <Route path="/admin/flags" element={<ProtectedRoute role="admin"><FlaggedListings /></ProtectedRoute>} />
-          <Route path="/admin/blogs" element={<ProtectedRoute role="admin"><Blogs /></ProtectedRoute>} />
-          <Route path="/admin/blogs/new" element={<ProtectedRoute role="admin"><BlogEditor /></ProtectedRoute>} />
-          <Route path="/admin/blogs/:id" element={<ProtectedRoute role="admin"><BlogEditor /></ProtectedRoute>} />
-          <Route path="/admin/green-reports" element={<ProtectedRoute role="admin"><GreenReports /></ProtectedRoute>} />
-          <Route path="/admin/calendar" element={<ProtectedRoute role="admin"><Calendar /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="farmers" element={<FarmerApproval />} />
+            <Route path="flags" element={<FlaggedListings />} />
+            <Route path="blogs" element={<Blogs />} />
+            <Route path="blogs/new" element={<BlogEditor />} />
+            <Route path="blogs/:id" element={<BlogEditor />} />
+            <Route path="green-reports" element={<GreenReports />} />
+            <Route path="calendar" element={<Calendar />} />
+          </Route>
         </Routes>
       </main>
-      <Footer />
+      {!isAdmin && <Footer />}
     </div>
   );
 }
