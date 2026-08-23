@@ -2,6 +2,8 @@ const express = require('express');
 const auth = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
 const Product = require('../models/Product');
+const FarmerProfile = require('../models/FarmerProfile');
+const Blog = require('../models/Blog');
 const Flag = require('../models/Flag');
 const { generateId } = require('../utils/helpers');
 
@@ -57,6 +59,19 @@ router.post('/', auth, roleCheck('farmer'), async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields.' });
     }
 
+    const farmerProfile = await FarmerProfile.findOne({ uid: req.uid });
+    if (!farmerProfile) {
+      return res.status(404).json({ error: 'Farmer profile not found.' });
+    }
+
+    if (farmerProfile.status !== 'approved') {
+      return res.status(403).json({ error: 'Your account is pending admin approval. You cannot add products yet.' });
+    }
+
+    if (!farmerProfile.consentGiven) {
+      return res.status(403).json({ error: 'Please accept the community rules before adding products.' });
+    }
+
     const product = await Product.create({
       productId: generateId(),
       farmerId: req.uid,
@@ -73,7 +88,43 @@ router.post('/', auth, roleCheck('farmer'), async (req, res) => {
       isActive: true,
     });
 
-    res.status(201).json(product);
+    let greenFlagEarned = false;
+    let matchedBlog = null;
+    try {
+      const blogs = await Blog.find({ status: 'published' });
+      for (const blog of blogs) {
+        if (!blog.inventoryStatus) continue;
+        for (const inv of blog.inventoryStatus) {
+          if (!inv.available) {
+            const regex = new RegExp(inv.ingredient, 'i');
+            if (regex.test(name) || regex.test(category) || (description && regex.test(description))) {
+              inv.available = true;
+              inv.farmerId = req.uid;
+              inv.productId = product.productId;
+              await blog.save();
+              farmerProfile.greenFlags = (farmerProfile.greenFlags || 0) + 1;
+              farmerProfile.trustScore = Math.min(100, (farmerProfile.trustScore || 0) + 2);
+              await farmerProfile.save();
+              greenFlagEarned = true;
+              matchedBlog = { blogId: blog.blogId, title: blog.title, festival: blog.festival, ingredient: inv.ingredient };
+              break;
+            }
+          }
+        }
+        if (greenFlagEarned) break;
+      }
+    } catch (err) {
+      console.error('Green flag check error:', err);
+    }
+
+    res.status(201).json({
+      product,
+      greenFlagEarned,
+      matchedBlog,
+      message: greenFlagEarned
+        ? `Congratulations! You earned a Green Flag for supplying "${matchedBlog.ingredient}" for ${matchedBlog.festival}!`
+        : undefined,
+    });
   } catch (err) {
     console.error('Create product error:', err);
     res.status(500).json({ error: 'Failed to create product.' });
