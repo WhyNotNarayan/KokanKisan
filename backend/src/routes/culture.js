@@ -50,6 +50,38 @@ router.get('/blogs/:id', async (req, res) => {
   }
 });
 
+router.get('/missing-ingredients', async (req, res) => {
+  try {
+    const blogs = await Blog.find({ status: 'published' });
+    const missingMap = {};
+
+    blogs.forEach((blog) => {
+      if (!blog.inventoryStatus) return;
+      blog.inventoryStatus.forEach((inv) => {
+        if (!inv.available) {
+          if (!missingMap[inv.ingredient]) {
+            missingMap[inv.ingredient] = {
+              ingredient: inv.ingredient,
+              blogs: [],
+            };
+          }
+          missingMap[inv.ingredient].blogs.push({
+            blogId: blog.blogId,
+            title: blog.title,
+            festival: blog.festival,
+            festivalDate: blog.festivalDate,
+          });
+        }
+      });
+    });
+
+    res.json(Object.values(missingMap));
+  } catch (err) {
+    console.error('Get missing ingredients error:', err);
+    res.status(500).json({ error: 'Failed to fetch missing ingredients.' });
+  }
+});
+
 router.use(auth, roleCheck('admin'));
 
 router.get('/admin/blogs', async (req, res) => {
