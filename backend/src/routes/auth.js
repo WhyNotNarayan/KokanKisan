@@ -11,7 +11,7 @@ const otpStore = {};
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, phone, role, village, taluka, city, email } = req.body;
+    const { name, phone, role, village, taluka, city, email, aadharNumber, idCardImage } = req.body;
 
     if (!name || !phone) {
       return res.status(400).json({ error: 'Name and phone are required.' });
@@ -35,10 +35,11 @@ router.post('/register', async (req, res) => {
     });
 
     if (role === 'farmer') {
-      const aadharHash = await bcrypt.hash(req.body.aadharNumber || 'placeholder', 10);
+      const aadharHash = await bcrypt.hash(aadharNumber || 'placeholder', 10);
       await FarmerProfile.create({
         uid,
         aadharHash,
+        idCardImage: idCardImage || '',
         status: 'pending',
       });
     }
@@ -74,7 +75,16 @@ router.post('/login', async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[phone] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 };
 
-    console.log(`OTP for ${phone}: ${otp}`);
+    console.log('\n');
+    console.log('========================================');
+    console.log('  OTP FOR DEVELOPMENT TESTING');
+    console.log('========================================');
+    console.log(`  Phone : ${phone}`);
+    console.log(`  OTP   : ${otp}`);
+    console.log('========================================');
+    console.log('  Use this OTP to test login flow.');
+    console.log('  OTP expires in 5 minutes.');
+    console.log('========================================\n');
 
     res.json({ message: 'OTP sent to your phone.', phone });
   } catch (err) {
@@ -124,6 +134,40 @@ router.post('/verify-otp', async (req, res) => {
   } catch (err) {
     console.error('OTP verify error:', err);
     res.status(500).json({ error: 'Verification failed.' });
+  }
+});
+
+router.get('/farmer-status/:uid', async (req, res) => {
+  try {
+    const profile = await FarmerProfile.findOne({ uid: req.params.uid });
+    if (!profile) {
+      return res.status(404).json({ error: 'Farmer profile not found.' });
+    }
+    res.json({
+      status: profile.status,
+      consentGiven: profile.consentGiven,
+    });
+  } catch (err) {
+    console.error('Get farmer status error:', err);
+    res.status(500).json({ error: 'Failed to get farmer status.' });
+  }
+});
+
+router.put('/farmer-consent/:uid', async (req, res) => {
+  try {
+    const { consentGiven } = req.body;
+    const profile = await FarmerProfile.findOneAndUpdate(
+      { uid: req.params.uid },
+      { consentGiven, consentTimestamp: consentGiven ? new Date() : null },
+      { new: true }
+    );
+    if (!profile) {
+      return res.status(404).json({ error: 'Farmer profile not found.' });
+    }
+    res.json({ message: 'Consent updated.', profile });
+  } catch (err) {
+    console.error('Update farmer consent error:', err);
+    res.status(500).json({ error: 'Failed to update consent.' });
   }
 });
 
