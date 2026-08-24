@@ -18,10 +18,12 @@ export default function Login() {
     e.preventDefault();
     try {
       await login(phone);
-      toast.success('OTP sent! Check console for dev OTP.');
+      toast.success('OTP sent successfully! Check backend terminal for the OTP.', {
+        duration: 5000,
+      });
       setStep('otp');
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Failed to send OTP. Please try again.');
     }
   };
 
@@ -32,7 +34,7 @@ export default function Login() {
       toast.success('Login successful!');
       navigate(getDashPath(res.user.role));
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Invalid OTP. Please try again.');
     }
   };
 
@@ -113,7 +115,7 @@ export default function Login() {
                       required
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Check server console for OTP in development mode</p>
+                  <p className="text-xs text-amber-600 bg-amber-50 rounded px-2 py-1 mt-1">📋 Dev Mode: Check backend terminal for OTP</p>
                 </div>
                 <button type="submit" className="btn-primary w-full" disabled={loading}>
                   {loading ? 'Verifying...' : 'Verify OTP'}
