@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Trash2, Save, Send, CheckCircle, XCircle } from 'lucide-react';
 import { api } from '../../utils/api';
 import toast from 'react-hot-toast';
@@ -7,10 +7,14 @@ import toast from 'react-hot-toast';
 export default function BlogEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isEdit = Boolean(id);
 
+  const prefillFestival = searchParams.get('festival') || '';
+  const prefillDate = searchParams.get('date') || '';
+
   const [form, setForm] = useState({
-    title: '', festival: '', festivalDate: '', status: 'draft',
+    title: '', festival: prefillFestival, festivalDate: prefillDate, status: 'draft',
     sections: { whatIs: '', whyTraditionalFood: '', whyHealthy: '', ingredients: '' },
     ingredientTags: [], images: [], videoUrls: [],
   });
@@ -19,7 +23,16 @@ export default function BlogEditor() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isEdit) fetchBlog();
+    if (isEdit) {
+      fetchBlog();
+    } else if (prefillFestival || prefillDate) {
+      setForm((prev) => ({
+        ...prev,
+        title: prefillFestival ? `${prefillFestival} — Festival Blog` : prev.title,
+        festival: prefillFestival || prev.festival,
+        festivalDate: prefillDate || prev.festivalDate,
+      }));
+    }
   }, [id]);
 
   const fetchBlog = async () => {
@@ -91,7 +104,14 @@ export default function BlogEditor() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">{isEdit ? 'Edit Festival Blog' : 'New Festival Blog'}</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <h1 className="text-2xl font-bold">{isEdit ? 'Edit Festival Blog' : 'New Festival Blog'}</h1>
+        {prefillFestival && !isEdit && (
+          <span className="text-sm bg-forest-100 text-forest-700 px-3 py-1 rounded-full">
+            Calendar: {prefillFestival}
+          </span>
+        )}
+      </div>
 
       <form className="card space-y-5" onSubmit={(e) => e.preventDefault()}>
         <div className="grid grid-cols-2 gap-4">
