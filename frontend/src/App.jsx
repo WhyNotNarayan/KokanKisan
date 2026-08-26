@@ -27,6 +27,7 @@ import ManageProducts from './pages/farmer/ManageProducts';
 import FarmerOrders from './pages/farmer/Orders';
 import TrustScoreDetail from './pages/farmer/TrustScoreDetail';
 import UploadVideo from './pages/farmer/UploadVideo';
+import FarmerIngredientRequests from './pages/farmer/FarmerIngredientRequests';
 
 import AdminDashboard from './pages/admin/Dashboard';
 import FarmerApproval from './pages/admin/FarmerApproval';
@@ -70,12 +71,13 @@ export default function App() {
           <Route path="/buyer/orders/:id" element={<ProtectedRoute role="buyer"><OrderTracking /></ProtectedRoute>} />
           <Route path="/buyer/review/:orderId" element={<ProtectedRoute role="buyer"><WriteReview /></ProtectedRoute>} />
 
-          <Route path="/farmer" element={<ProtectedRoute role="farmer"><FarmerDashboard /></ProtectedRoute>} />
-          <Route path="/farmer/add-product" element={<ProtectedRoute role="farmer"><AddProduct /></ProtectedRoute>} />
-          <Route path="/farmer/products" element={<ProtectedRoute role="farmer"><ManageProducts /></ProtectedRoute>} />
-          <Route path="/farmer/orders" element={<ProtectedRoute role="farmer"><FarmerOrders /></ProtectedRoute>} />
-          <Route path="/farmer/trust-score" element={<ProtectedRoute role="farmer"><TrustScoreDetail /></ProtectedRoute>} />
-          <Route path="/farmer/upload-video" element={<ProtectedRoute role="farmer"><UploadVideo /></ProtectedRoute>} />
+        <Route path="/farmer" element={<ProtectedRoute role="farmer"><FarmerDashboard /></ProtectedRoute>} />
+        <Route path="/farmer/add-product" element={<ProtectedRoute role="farmer"><AddProduct /></ProtectedRoute>} />
+        <Route path="/farmer/products" element={<ProtectedRoute role="farmer"><ManageProducts /></ProtectedRoute>} />
+        <Route path="/farmer/orders" element={<ProtectedRoute role="farmer"><FarmerOrders /></ProtectedRoute>} />
+        <Route path="/farmer/trust-score" element={<ProtectedRoute role="farmer"><TrustScoreDetail /></ProtectedRoute>} />
+        <Route path="/farmer/upload-video" element={<ProtectedRoute role="farmer"><UploadVideo /></ProtectedRoute>} />
+        <Route path="/farmer/ingredient-requests" element={<ProtectedRoute role="farmer"><FarmerIngredientRequests /></ProtectedRoute>} />
 
           <Route path="/admin" element={<ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminDashboard />} />
