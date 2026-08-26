@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Leaf, Phone, User, MapPin } from 'lucide-react';
+import { Leaf, Phone, User, MapPin, Upload } from 'lucide-react';
 import useAuthStore from '../store/useAuthStore';
 import toast from 'react-hot-toast';
 
@@ -12,7 +12,7 @@ const TALUKAS = [
 
 export default function Register() {
   const [role, setRole] = useState('buyer');
-  const [form, setForm] = useState({ name: '', phone: '', village: '', taluka: '', city: '', aadharNumber: '' });
+  const [form, setForm] = useState({ name: '', phone: '', village: '', taluka: '', city: '', aadharNumber: '', idCardImage: '' });
   const { register, loading } = useAuthStore();
   const navigate = useNavigate();
 
@@ -20,11 +20,39 @@ export default function Register() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setForm({ ...form, idCardImage: reader.result });
+      toast.success('ID card uploaded successfully');
+    };
+    reader.onerror = () => {
+      toast.error('Failed to upload image');
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (role === 'farmer' && !form.idCardImage) {
+      toast.error('Please upload your ID card for verification');
+      return;
+    }
     try {
       await register({ ...form, role });
-      toast.success('Registration successful!');
+      if (role === 'farmer') {
+        toast.success('Registration successful! Your account is pending admin approval. You will be notified once approved.');
+      } else {
+        toast.success('Registration successful!');
+      }
       navigate(role === 'farmer' ? '/farmer' : '/buyer');
     } catch (err) {
       toast.error(err.message);
@@ -58,6 +86,14 @@ export default function Register() {
             </button>
           </div>
 
+          {role === 'farmer' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-amber-800">
+                <strong>Note:</strong> Farmer accounts require admin approval. Please upload your government ID card (Aadhar/Voter ID/Driving License) for verification.
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
@@ -81,6 +117,30 @@ export default function Register() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Number</label>
                   <input type="text" name="aadharNumber" value={form.aadharNumber} onChange={handleChange} placeholder="12-digit Aadhar number" className="input-field" maxLength={12} required />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Upload ID Card *</label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-forest-400 transition-colors">
+                    {form.idCardImage ? (
+                      <div className="space-y-2">
+                        <img src={form.idCardImage} alt="ID Card" className="max-h-32 mx-auto rounded" />
+                        <p className="text-xs text-green-600">ID card uploaded successfully</p>
+                        <label className="text-xs text-forest-500 hover:underline cursor-pointer">
+                          Change image
+                          <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                        </label>
+                      </div>
+                    ) : (
+                      <label className="cursor-pointer">
+                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-sm text-gray-500">Click to upload ID card</p>
+                        <p className="text-xs text-gray-400">JPG, PNG up to 5MB</p>
+                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                      </label>
+                    )}
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Village</label>
                   <div className="relative">
