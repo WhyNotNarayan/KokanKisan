@@ -58,6 +58,19 @@ const useAuthStore = create((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  adminLogin: async (email, password) => {
+    set({ loading: true, error: null });
+    try {
+      const res = await api.post('/auth/admin-login', { email, password });
+      get().setUser(res.user, res.token);
+      set({ loading: false });
+      return res;
+    } catch (err) {
+      set({ loading: false, error: err.message });
+      throw err;
+    }
+  },
 }));
 
 export default useAuthStore;
