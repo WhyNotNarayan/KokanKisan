@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ImagePlus, X, Upload } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ImagePlus, X, Upload, Leaf } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import { api } from '../../utils/api';
 import toast from 'react-hot-toast';
@@ -35,8 +35,11 @@ const compressImage = (file, maxWidth = 800, quality = 0.7) => {
 export default function AddProduct() {
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const prefillName = searchParams.get('name') || '';
+
   const [form, setForm] = useState({
-    name: '', category: '', price: '', quantity: '', unit: 'kg', description: '', advantages: '', village: user.village || '', taluka: user.taluka || '',
+    name: prefillName, category: '', price: '', quantity: '', unit: 'kg', description: '', advantages: '', village: user.village || '', taluka: user.taluka || '',
   });
   const [images, setImages] = useState([]);
   const [imageUrls, setImageUrls] = useState(['']);
@@ -88,13 +91,18 @@ export default function AddProduct() {
     setLoading(true);
     try {
       const allImages = [...images, ...imageUrls.filter(url => url.trim() !== '')];
-      await api.post('/products', {
+      const res = await api.post('/products', {
         ...form,
         price: Number(form.price),
         quantity: Number(form.quantity),
         images: allImages,
       });
-      toast.success('Product added!');
+
+      if (res.greenFlagEarned) {
+        toast.success(res.message, { duration: 6000, icon: '🌿' });
+      } else {
+        toast.success('Product added!');
+      }
       navigate('/farmer/products');
     } catch (err) {
       toast.error(err.message);
@@ -105,7 +113,14 @@ export default function AddProduct() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Add New Product</h1>
+      <div className="flex items-center gap-3 mb-6">
+        <h1 className="text-2xl font-bold">Add New Product</h1>
+        {prefillName && (
+          <span className="text-sm bg-amber-100 text-amber-700 px-3 py-1 rounded-full flex items-center gap-1">
+            <Leaf className="w-3 h-3" /> Festival Request
+          </span>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} className="card space-y-4">
         <div>
