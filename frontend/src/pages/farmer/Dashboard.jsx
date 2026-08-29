@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, DollarSign, Star, Plus, Video, ShoppingBag } from 'lucide-react';
+import { Package, DollarSign, Star, Plus, Video, ShoppingBag, Clock, CheckCircle, AlertCircle, Leaf } from 'lucide-react';
 import useAuthStore from '../../store/useAuthStore';
 import TrustBadge from '../../components/TrustBadge';
+import Consent from './Consent';
 import { api } from '../../utils/api';
+import toast from 'react-hot-toast';
 
 export default function FarmerDashboard() {
   const user = useAuthStore((s) => s.user);
@@ -11,10 +13,35 @@ export default function FarmerDashboard() {
   const [trustData, setTrustData] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [farmerStatus, setFarmerStatus] = useState(null);
+  const [showConsent, setShowConsent] = useState(false);
 
   useEffect(() => {
-    fetchDashboard();
+    fetchFarmerStatus();
   }, []);
+
+  const fetchFarmerStatus = async () => {
+    try {
+      const statusData = await api.get(`/auth/farmer-status/${user.uid}`);
+      setFarmerStatus(statusData);
+
+      if (statusData.status === 'pending') {
+        setLoading(false);
+        return;
+      }
+
+      if (statusData.status === 'approved' && !statusData.consentGiven) {
+        setShowConsent(true);
+        setLoading(false);
+        return;
+      }
+
+      fetchDashboard();
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  };
 
   const fetchDashboard = async () => {
     try {
@@ -41,6 +68,56 @@ export default function FarmerDashboard() {
     }
   };
 
+  const handleConsentGiven = () => {
+    setShowConsent(false);
+    setFarmerStatus((prev) => ({ ...prev, consentGiven: true }));
+    fetchDashboard();
+  };
+
+  if (showConsent) {
+    return <Consent onConsentGiven={handleConsentGiven} />;
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-24 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (farmerStatus?.status === 'pending') {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="text-center py-16">
+          <Clock className="w-16 h-16 text-amber-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Account Under Review</h2>
+          <p className="text-gray-500 mb-6">
+            Your account is pending admin approval. You will receive a notification once your account is approved.
+          </p>
+          <div className="card max-w-md mx-auto">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500" />
+              <p className="text-sm text-gray-600">
+                <strong>Status:</strong> Pending Approval
+              </p>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              Registered: {new Date(farmerStatus.createdAt || Date.now()).toLocaleDateString()}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
@@ -48,6 +125,15 @@ export default function FarmerDashboard() {
         <Link to="/farmer/add-product" className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" /> Add Product
         </Link>
+      </div>
+
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center gap-3">
+          <CheckCircle className="w-5 h-5 text-green-500" />
+          <p className="text-sm text-green-800">
+            <strong>Welcome!</strong> Your account has been approved. You are now an official member of KokanKisan.
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -88,6 +174,9 @@ export default function FarmerDashboard() {
         <Link to="/farmer/products" className="btn-outline text-sm py-2">Manage Products</Link>
         <Link to="/farmer/orders" className="btn-outline text-sm py-2">View Orders</Link>
         <Link to="/farmer/trust-score" className="btn-outline text-sm py-2">Trust Score</Link>
+        <Link to="/farmer/ingredient-requests" className="btn-outline text-sm py-2 flex items-center gap-1 border-amber-300 text-amber-700 hover:bg-amber-50">
+          <Leaf className="w-4 h-4" /> Festival Ingredients
+        </Link>
         <Link to="/farmer/upload-video" className="btn-outline text-sm py-2 flex items-center gap-1">
           <Video className="w-4 h-4" /> Upload Video
         </Link>
