@@ -33,5 +33,6 @@ const productSchema = new mongoose.Schema({
 });
 
 productSchema.index({ taluka: 1, category: 1, isActive: 1 });
+productSchema.index({ farmerId: 1, isActive: 1 });
 
 module.exports = mongoose.model('Product', productSchema);
