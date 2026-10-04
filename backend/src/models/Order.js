@@ -32,6 +32,9 @@ const orderSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
+orderSchema.index({ farmerId: 1, createdAt: -1 });
+orderSchema.index({ buyerId: 1, createdAt: -1 });
+
 orderSchema.pre('save', function (next) {
   this.updatedAt = new Date();
   next();
