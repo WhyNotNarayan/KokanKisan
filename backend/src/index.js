@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -20,6 +21,8 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+app.use('/api/media', express.static(path.join(__dirname, '../uploads'), { maxAge: '7d', immutable: true }));
 
 const limiter = rateLimit({
   windowMs: 60 * 1000,
@@ -45,8 +48,14 @@ app.get('/api/health', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
+console.log('Connecting to MongoDB Atlas...');
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 10000,
+    socketTimeoutMS: 45000,
+    heartbeatFrequencyMS: 10000,
+    maxPoolSize: 10,
+  })
   .then(() => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => {
@@ -54,6 +63,7 @@ mongoose
     });
   })
   .catch((err) => {
-    console.error('MongoDB connection error:', err);
+    console.error('MongoDB connection error:', err.message);
+    console.error('Check: 1) Atlas cluster is Resumed (not Paused), 2) Network Access allows your IP, 3) MONGODB_URI in backend/.env is correct.');
     process.exit(1);
   });
