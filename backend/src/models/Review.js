@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const reviewSchema = new mongoose.Schema({
   reviewId: { type: String, required: true, unique: true },
   orderId: { type: String, required: true, ref: 'Order' },
+  productId: { type: String, index: true },
   buyerId: { type: String, required: true, ref: 'User' },
   farmerId: { type: String, required: true, ref: 'FarmerProfile' },
   rating: { type: Number, required: true, min: 1, max: 5 },
