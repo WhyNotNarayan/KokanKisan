@@ -3,7 +3,8 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const FarmerProfile = require('../models/FarmerProfile');
-const { generateId } = require('../utils/helpers');
+const { generateId, normalizePhone, isValidPhone } = require('../utils/helpers');
+const { saveImage } = require('../utils/media');
 
 const router = express.Router();
 
@@ -11,10 +12,15 @@ const otpStore = {};
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, phone, role, village, taluka, city, email, aadharNumber, idCardImage } = req.body;
+    const { name, role, village, taluka, city, email, aadharNumber, idCardImage } = req.body;
+    const phone = normalizePhone(req.body.phone);
 
     if (!name || !phone) {
       return res.status(400).json({ error: 'Name and phone are required.' });
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({ error: 'Phone number must be exactly 10 digits.' });
     }
 
     const existing = await User.findOne({ phone });
@@ -39,7 +45,7 @@ router.post('/register', async (req, res) => {
       await FarmerProfile.create({
         uid,
         aadharHash,
-        idCardImage: idCardImage || '',
+        idCardImage: saveImage(idCardImage || '', 'idcards'),
         status: 'pending',
       });
     }
@@ -61,10 +67,14 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { phone } = req.body;
+    const phone = normalizePhone(req.body.phone);
 
     if (!phone) {
       return res.status(400).json({ error: 'Phone number is required.' });
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({ error: 'Phone number must be exactly 10 digits.' });
     }
 
     const user = await User.findOne({ phone });
@@ -86,7 +96,11 @@ router.post('/login', async (req, res) => {
     console.log('  OTP expires in 5 minutes.');
     console.log('========================================\n');
 
-    res.json({ message: 'OTP sent to your phone.', phone });
+    res.json({
+      message: 'OTP sent to your phone.',
+      phone,
+      ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {}),
+    });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Login failed.' });
@@ -95,10 +109,15 @@ router.post('/login', async (req, res) => {
 
 router.post('/verify-otp', async (req, res) => {
   try {
-    const { phone, otp } = req.body;
+    const { otp } = req.body;
+    const phone = normalizePhone(req.body.phone);
 
     if (!phone || !otp) {
       return res.status(400).json({ error: 'Phone and OTP are required.' });
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({ error: 'Phone number must be exactly 10 digits.' });
     }
 
     const stored = otpStore[phone];
@@ -139,13 +158,34 @@ router.post('/verify-otp', async (req, res) => {
 
 router.get('/farmer-status/:uid', async (req, res) => {
   try {
-    const profile = await FarmerProfile.findOne({ uid: req.params.uid });
+    let profile = await FarmerProfile.findOne({ uid: req.params.uid })
+      .select('status consentGiven createdAt');
+
     if (!profile) {
-      return res.status(404).json({ error: 'Farmer profile not found.' });
+      const user = await User.findOne({ uid: req.params.uid });
+      if (!user) {
+        return res.status(401).json({
+          error: 'Session expired. Please login again.',
+          code: 'SESSION_EXPIRED',
+        });
+      }
+      if (user.role !== 'farmer') {
+        return res.status(403).json({
+          error: 'This account is not a farmer account.',
+          code: 'NOT_FARMER',
+        });
+      }
+      profile = await FarmerProfile.create({
+        uid: req.params.uid,
+        aadharHash: 'not-provided',
+        status: 'pending',
+      });
     }
+
     res.json({
       status: profile.status,
       consentGiven: profile.consentGiven,
+      createdAt: profile.createdAt,
     });
   } catch (err) {
     console.error('Get farmer status error:', err);
