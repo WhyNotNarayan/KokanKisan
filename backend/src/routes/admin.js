@@ -20,7 +20,9 @@ router.get('/stats', async (req, res) => {
     const totalProducts = await Product.countDocuments({ isActive: true });
     const totalOrders = await Order.countDocuments();
     const pendingApprovals = await FarmerProfile.countDocuments({ status: 'pending' });
-    const totalFlags = await Flag.countDocuments();
+    const totalFlags = await Flag.countDocuments({
+      $or: [{ score: { $lt: 0 } }, { score: null }],
+    });
 
     const revenueAgg = await Order.aggregate([
       { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' }, totalCommission: { $sum: '$commission' } } },
@@ -122,7 +124,21 @@ router.put('/farmers/:id/suspend', async (req, res) => {
 router.get('/flags', async (req, res) => {
   try {
     const flags = await Flag.find().sort({ createdAt: -1 }).limit(100);
-    res.json(flags);
+    const productIds = [...new Set(flags.map((f) => f.productId))];
+    const buyerIds = [...new Set(flags.map((f) => f.buyerId))];
+
+    const [products, users] = await Promise.all([
+      Product.find({ productId: { $in: productIds } }).select('productId name'),
+      User.find({ uid: { $in: buyerIds } }).select('uid name'),
+    ]);
+    const productName = Object.fromEntries(products.map((p) => [p.productId, p.name]));
+    const buyerName = Object.fromEntries(users.map((u) => [u.uid, u.name]));
+
+    res.json(flags.map((f) => ({
+      ...f.toObject(),
+      productName: productName[f.productId] || null,
+      buyerName: buyerName[f.buyerId] || null,
+    })));
   } catch (err) {
     console.error('Get flags error:', err);
     res.status(500).json({ error: 'Failed to fetch flags.' });
