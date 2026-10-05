@@ -2,39 +2,47 @@ const express = require('express');
 const auth = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
 const Blog = require('../models/Blog');
-const Product = require('../models/Product');
-const FarmerProfile = require('../models/FarmerProfile');
 const { generateId } = require('../utils/helpers');
+const { saveImages, removeImages, removeImage } = require('../utils/media');
+const { verifyInventory } = require('../utils/inventory');
 
 const router = express.Router();
 
-function verifyInventory(ingredientTags) {
-  return Promise.all(
-    ingredientTags.map(async (tag) => {
-      const regex = new RegExp(tag, 'i');
-      const product = await Product.findOne({
-        isActive: true,
-        inStock: true,
-        $or: [{ name: regex }, { category: regex }, { description: regex }],
-      }).populate('farmerId', 'uid');
-
-      if (product) {
-        return {
-          ingredient: tag,
-          available: true,
-          farmerId: product.farmerId,
-          productId: product.productId,
-        };
-      }
-      return { ingredient: tag, available: false, farmerId: null, productId: null };
-    })
+const inventoryKey = (arr) =>
+  JSON.stringify(
+    (Array.isArray(arr) ? arr : []).map((i) => ({
+      ingredient: i.ingredient,
+      available: !!i.available,
+      farmerId: i.farmerId || null,
+      productId: i.productId || null,
+    }))
   );
+
+// Every public blog read recomputes availability from live products and writes
+// the result back, so a stale inventoryStatus can never be shown to buyers.
+async function refreshInventory(blog) {
+  const ingredients = blog.ingredientTags?.length
+    ? blog.ingredientTags
+    : (blog.inventoryStatus || []).map((i) => i.ingredient);
+  if (!ingredients.length) return blog;
+
+  const fresh = await verifyInventory(ingredients);
+  if (inventoryKey(fresh) === inventoryKey(blog.inventoryStatus)) return blog;
+
+  blog.inventoryStatus = fresh;
+  try {
+    await blog.save();
+  } catch (err) {
+    console.error('Inventory refresh save error:', err.message);
+  }
+  return blog;
 }
 
 router.get('/blogs', async (req, res) => {
   try {
     const blogs = await Blog.find({ status: 'published' }).sort({ publishedAt: -1 });
-    res.json(blogs);
+    const out = await Promise.all(blogs.map((b) => refreshInventory(b)));
+    res.json(out);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch blogs.' });
   }
@@ -44,7 +52,7 @@ router.get('/blogs/:id', async (req, res) => {
   try {
     const blog = await Blog.findOne({ blogId: req.params.id });
     if (!blog) return res.status(404).json({ error: 'Blog not found.' });
-    res.json(blog);
+    res.json(await refreshInventory(blog));
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch blog.' });
   }
@@ -55,25 +63,36 @@ router.get('/missing-ingredients', async (req, res) => {
     const blogs = await Blog.find({ status: 'published' });
     const missingMap = {};
 
-    blogs.forEach((blog) => {
-      if (!blog.inventoryStatus) return;
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    for (const blog of blogs) {
+      if (!blog.inventoryStatus || !blog.inventoryStatus.length) continue;
+
+      if (blog.festivalDate && new Date(blog.festivalDate) < startOfToday) {
+        continue;
+      }
+
+      // heals both directions: product appeared -> available, product gone -> unavailable
+      await refreshInventory(blog);
+
       blog.inventoryStatus.forEach((inv) => {
-        if (!inv.available) {
-          if (!missingMap[inv.ingredient]) {
-            missingMap[inv.ingredient] = {
-              ingredient: inv.ingredient,
-              blogs: [],
-            };
-          }
-          missingMap[inv.ingredient].blogs.push({
-            blogId: blog.blogId,
-            title: blog.title,
-            festival: blog.festival,
-            festivalDate: blog.festivalDate,
-          });
+        if (inv.available) return;
+
+        if (!missingMap[inv.ingredient]) {
+          missingMap[inv.ingredient] = {
+            ingredient: inv.ingredient,
+            blogs: [],
+          };
         }
+        missingMap[inv.ingredient].blogs.push({
+          blogId: blog.blogId,
+          title: blog.title,
+          festival: blog.festival,
+          festivalDate: blog.festivalDate,
+        });
       });
-    });
+    }
 
     res.json(Object.values(missingMap));
   } catch (err) {
@@ -110,7 +129,7 @@ router.post('/blogs', async (req, res) => {
       festivalDate,
       sections: sections || {},
       ingredientTags: ingredientTags || [],
-      images: images || [],
+      images: saveImages(images, 'blogs'),
       videoUrls: videoUrls || [],
       inventoryStatus,
       status: status || 'draft',
@@ -126,7 +145,15 @@ router.post('/blogs', async (req, res) => {
 
 router.put('/blogs/:id', async (req, res) => {
   try {
+    const existing = await Blog.findOne({ blogId: req.params.id });
+    if (!existing) return res.status(404).json({ error: 'Blog not found.' });
+
     const update = { ...req.body };
+    if (update.images) {
+      update.images = saveImages(update.images, 'blogs');
+      const kept = new Set(update.images);
+      (existing.images || []).filter((v) => !kept.has(v)).forEach(removeImage);
+    }
     if (req.body.ingredientTags) {
       update.inventoryStatus = await verifyInventory(req.body.ingredientTags);
     }
@@ -143,7 +170,8 @@ router.put('/blogs/:id', async (req, res) => {
 
 router.delete('/blogs/:id', async (req, res) => {
   try {
-    await Blog.findOneAndDelete({ blogId: req.params.id });
+    const blog = await Blog.findOneAndDelete({ blogId: req.params.id });
+    if (blog) removeImages(blog.images);
     res.json({ message: 'Blog deleted.' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete blog.' });
