@@ -3,6 +3,7 @@ const auth = require('../middleware/auth');
 const roleCheck = require('../middleware/roleCheck');
 const Review = require('../models/Review');
 const Order = require('../models/Order');
+const User = require('../models/User');
 const { generateId } = require('../utils/helpers');
 const { calculateTrustScore } = require('../utils/trustScore');
 
@@ -39,6 +40,7 @@ router.post('/', auth, roleCheck('buyer'), async (req, res) => {
     const review = await Review.create({
       reviewId: generateId(),
       orderId,
+      productId: order.productId,
       buyerId: req.uid,
       farmerId: order.farmerId,
       rating: Number(rating),
@@ -51,6 +53,39 @@ router.post('/', auth, roleCheck('buyer'), async (req, res) => {
   } catch (err) {
     console.error('Create review error:', err);
     res.status(500).json({ error: 'Failed to create review.' });
+  }
+});
+
+router.get('/product/:productId', async (req, res) => {
+  try {
+    const reviews = await Review.find({ productId: req.params.productId })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    const buyerIds = [...new Set(reviews.map((r) => r.buyerId))];
+    const users = buyerIds.length
+      ? await User.find({ uid: { $in: buyerIds } }).select('uid name')
+      : [];
+    const nameMap = {};
+    users.forEach((u) => { nameMap[u.uid] = u.name; });
+
+    const avgRating =
+      reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+
+    res.json({
+      reviews: reviews.map((r) => ({
+        reviewId: r.reviewId,
+        rating: r.rating,
+        comment: r.comment,
+        createdAt: r.createdAt,
+        buyerName: nameMap[r.buyerId] || 'KokanKisan buyer',
+      })),
+      avgRating: Math.round(avgRating * 10) / 10,
+      count: reviews.length,
+    });
+  } catch (err) {
+    console.error('Get product reviews error:', err);
+    res.status(500).json({ error: 'Failed to fetch reviews.' });
   }
 });
 
