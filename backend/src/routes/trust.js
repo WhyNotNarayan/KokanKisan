@@ -7,7 +7,8 @@ const router = express.Router();
 
 router.get('/:farmerId', async (req, res) => {
   try {
-    const profile = await FarmerProfile.findOne({ uid: req.params.farmerId });
+    const profile = await FarmerProfile.findOne({ uid: req.params.farmerId })
+      .select('uid trustScore pledgeSigned vouchCount totalSales weeklyVideosUploaded flagsReceived');
     if (!profile) {
       return res.status(404).json({ error: 'Farmer profile not found.' });
     }
