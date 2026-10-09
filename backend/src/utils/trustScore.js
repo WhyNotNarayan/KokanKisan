@@ -16,10 +16,12 @@ async function calculateTrustScore(farmerId) {
     productId: { $exists: true },
   });
 
+  // Only negative reports hurt trust (legacy flags have no score, count them too)
   const farmerFlags = await Flag.aggregate([
     { $lookup: { from: 'products', localField: 'productId', foreignField: 'productId', as: 'product' } },
     { $unwind: '$product' },
     { $match: { 'product.farmerId': farmerId } },
+    { $match: { $or: [{ score: { $lt: 0 } }, { score: null }] } },
     { $count: 'count' },
   ]);
   const flags = farmerFlags.length > 0 ? farmerFlags[0].count : 0;
