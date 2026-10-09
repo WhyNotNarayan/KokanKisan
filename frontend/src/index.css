@@ -25,3 +25,20 @@ body {
     @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
   }
 }
+
+@keyframes kk-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.55); }
+  50% { box-shadow: 0 0 0 9px rgba(245, 158, 11, 0); }
+}
+.kk-glow {
+  animation: kk-glow 1.8s ease-in-out infinite;
+}
+
+@keyframes kk-slide-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.kk-slide-in {
+  animation: kk-slide-in 0.5s ease-out both;
+}
+
